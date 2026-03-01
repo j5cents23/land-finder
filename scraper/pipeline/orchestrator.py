@@ -1,5 +1,7 @@
-"""Pipeline orchestrator that wires normalize, dedupe, filter, and store."""
+"""Pipeline orchestrator that wires normalize, dedupe, filter, store, and enrich."""
 
+import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 
@@ -7,8 +9,11 @@ from sqlalchemy.orm import Session
 
 from scraper.models import Listing, SearchCriteria, SourceEnum
 from scraper.pipeline.deduplicator import deduplicate
+from scraper.pipeline.enricher import enrich_listing
 from scraper.pipeline.filter import matches_criteria
 from scraper.pipeline.normalizer import detect_features, parse_acreage, parse_price
+
+logger = logging.getLogger("land-finder.orchestrator")
 
 
 def _raw_to_listing(raw: dict) -> Listing | None:
@@ -98,6 +103,29 @@ async def run_pipeline(session: Session, raw_results: list[dict]) -> list[Listin
         session.add(listing)
         session.flush()
         new_listings.append(listing)
+
+    session.commit()
+
+    # Enrich new listings that have coordinates
+    for listing in new_listings:
+        if listing.latitude and listing.longitude:
+            try:
+                score = await enrich_listing(
+                    listing.id,
+                    listing.latitude,
+                    listing.longitude,
+                    listing.state,
+                    listing.county,
+                    listing.acreage,
+                    listing.price,
+                )
+                session.merge(score)
+                logger.info(
+                    "Enriched listing %s — score: %s", listing.id, score.match_score
+                )
+            except Exception as e:
+                logger.warning("Failed to enrich listing %s: %s", listing.id, e)
+            await asyncio.sleep(0.5)
 
     session.commit()
     return new_listings
