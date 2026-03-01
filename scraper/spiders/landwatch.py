@@ -1,10 +1,15 @@
-import asyncio
 import logging
 from urllib.parse import urljoin
 
 from bs4 import BeautifulSoup
 
 from scraper.spiders.base import BaseSpider
+from scraper.spiders.browser import (
+    create_stealth_browser,
+    create_stealth_page,
+    human_delay,
+    human_scroll,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +41,9 @@ class LandWatchSpider(BaseSpider):
     ]
 
     def _search_url(self, path: str, page: int = 1) -> str:
-        return f"{self.BASE_URL}{path}" if page <= 1 else f"{self.BASE_URL}{path}/p/{page}"
+        if page <= 1:
+            return f"{self.BASE_URL}{path}"
+        return f"{self.BASE_URL}{path}/p/{page}"
 
     def parse_results(self, html: str, base_url: str) -> list[dict]:
         soup = BeautifulSoup(html, "html.parser")
@@ -63,7 +70,9 @@ class LandWatchSpider(BaseSpider):
             location = location_el.get_text(strip=True) if location_el else ""
 
             description_el = card.select_one(".property-card__description")
-            description = description_el.get_text(strip=True) if description_el else ""
+            description = (
+                description_el.get_text(strip=True) if description_el else ""
+            )
 
             listings.append({
                 "source_id": source_id,
@@ -79,17 +88,40 @@ class LandWatchSpider(BaseSpider):
 
     async def scrape(self, criteria: dict) -> list[dict]:
         all_listings: list[dict] = []
+        pw = None
+        browser = None
+        try:
+            pw, browser = await create_stealth_browser()
+            page = await create_stealth_page(browser)
 
-        async with self._client() as client:
             for path in self.SEARCH_PATHS:
+                url = self._search_url(path)
                 try:
-                    url = self._search_url(path)
-                    response = await client.get(url)
-                    response.raise_for_status()
-                    results = self.parse_results(response.text, self.BASE_URL)
+                    logger.info("Navigating to %s", url)
+                    await page.goto(
+                        url,
+                        wait_until="domcontentloaded",
+                        timeout=60_000,
+                    )
+                    await human_delay(2, 4)
+                    await human_scroll(page)
+                    await human_delay(1, 2)
+
+                    html = await page.content()
+                    results = self.parse_results(html, base_url=self.BASE_URL)
                     all_listings.extend(results)
-                    await asyncio.sleep(self.delay)
+                    logger.info("Found %d listings at %s", len(results), url)
+
+                    await human_delay(3, 6)
                 except Exception as exc:
-                    logger.warning("[landwatch] Error scraping %s: %s", path, exc)
+                    logger.warning("[landwatch] Error scraping %s: %s", url, exc)
+
+        except Exception as exc:
+            logger.error("[landwatch] Browser error: %s", exc)
+        finally:
+            if browser:
+                await browser.close()
+            if pw:
+                await pw.stop()
 
         return all_listings

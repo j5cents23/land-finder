@@ -1,11 +1,15 @@
-import asyncio
 import logging
-import random
 import re
 
 from bs4 import BeautifulSoup
 
 from scraper.spiders.base import BaseSpider
+from scraper.spiders.browser import (
+    create_stealth_browser,
+    create_stealth_page,
+    human_delay,
+    human_scroll,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -63,7 +67,9 @@ class FacebookSpider(BaseSpider):
             location = location_el.get_text(strip=True) if location_el else ""
 
             description_el = card.select_one(".listing-description")
-            description = description_el.get_text(strip=True) if description_el else ""
+            description = (
+                description_el.get_text(strip=True) if description_el else ""
+            )
 
             url = href if href.startswith("http") else f"{base_url}{href}"
 
@@ -80,40 +86,52 @@ class FacebookSpider(BaseSpider):
 
     async def scrape(self, criteria: dict) -> list[dict]:
         all_listings: list[dict] = []
-
+        pw = None
+        browser = None
         try:
-            from playwright.async_api import async_playwright
-        except ImportError:
-            logger.error("[facebook] playwright is not installed")
-            return all_listings
+            pw, browser = await create_stealth_browser()
+            page = await create_stealth_page(browser)
 
-        async with async_playwright() as pw:
-            browser = await pw.chromium.launch(headless=True)
-            context = await browser.new_context(
-                user_agent=random.choice(self.user_agents),
-                viewport={"width": 1920, "height": 1080},
-                locale="en-US",
-            )
-
-            for search_url in self.SEARCH_URLS:
+            for url in self.SEARCH_URLS:
                 try:
-                    page = await context.new_page()
-                    await page.goto(search_url, wait_until="networkidle")
-                    await asyncio.sleep(random.uniform(2.0, 4.0))
+                    logger.info("Navigating to %s", url)
+                    await page.goto(
+                        url,
+                        wait_until="domcontentloaded",
+                        timeout=60_000,
+                    )
+                    await human_delay(2, 4)
 
-                    # Simulate human scrolling to trigger lazy-load
-                    for _ in range(3):
-                        await page.evaluate("window.scrollBy(0, 400)")
-                        await asyncio.sleep(random.uniform(0.8, 1.5))
+                    # Check if Facebook redirected to login
+                    current_url = page.url
+                    if "/login" in current_url or "login.php" in current_url:
+                        logger.warning(
+                            "[facebook] Redirected to login page. "
+                            "Facebook Marketplace requires authentication. "
+                            "Skipping remaining URLs."
+                        )
+                        break
+
+                    await human_scroll(page)
+                    await human_delay(1, 2)
 
                     html = await page.content()
-                    results = self.parse_results(html, self.BASE_URL)
+                    results = self.parse_results(html, base_url=self.BASE_URL)
                     all_listings.extend(results)
-                    await page.close()
-                    await asyncio.sleep(self.delay + random.uniform(1.0, 3.0))
-                except Exception as exc:
-                    logger.warning("[facebook] Error scraping %s: %s", search_url, exc)
+                    logger.info(
+                        "Found %d listings at %s", len(results), url
+                    )
 
-            await browser.close()
+                    await human_delay(3, 6)
+                except Exception as exc:
+                    logger.warning("[facebook] Error scraping %s: %s", url, exc)
+
+        except Exception as exc:
+            logger.error("[facebook] Browser error: %s", exc)
+        finally:
+            if browser:
+                await browser.close()
+            if pw:
+                await pw.stop()
 
         return all_listings
