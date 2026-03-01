@@ -16,11 +16,24 @@ class ZillowSpider(BaseSpider):
     BASE_URL = "https://www.zillow.com"
 
     SEARCH_URLS = [
-        "https://www.zillow.com/sullivan-county-ny/land/",
-        "https://www.zillow.com/ulster-county-ny/land/",
-        "https://www.zillow.com/greene-county-ny/land/",
-        "https://www.zillow.com/delaware-county-ny/land/",
-        "https://www.zillow.com/orange-county-ny/land/",
+        # Idaho
+        "https://www.zillow.com/id/land/",
+        # Colorado
+        "https://www.zillow.com/co/land/",
+        # Utah
+        "https://www.zillow.com/ut/land/",
+        # Montana
+        "https://www.zillow.com/mt/land/",
+        # Michigan
+        "https://www.zillow.com/mi/land/",
+        # New Hampshire
+        "https://www.zillow.com/nh/land/",
+        # Pennsylvania
+        "https://www.zillow.com/pa/land/",
+        # West Virginia
+        "https://www.zillow.com/wv/land/",
+        # Wyoming
+        "https://www.zillow.com/wy/land/",
     ]
 
     def parse_results(self, html: str, base_url: str) -> list[dict]:

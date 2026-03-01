@@ -15,11 +15,24 @@ class LandComSpider(BaseSpider):
     BASE_URL = "https://www.land.com"
 
     SEARCH_PATHS = [
-        "/New-York/Sullivan-County/all-land/for-sale/",
-        "/New-York/Ulster-County/all-land/for-sale/",
-        "/New-York/Greene-County/all-land/for-sale/",
-        "/New-York/Delaware-County/all-land/for-sale/",
-        "/New-York/Orange-County/all-land/for-sale/",
+        # Idaho
+        "/Idaho/all-land/for-sale/",
+        # Colorado
+        "/Colorado/all-land/for-sale/",
+        # Utah
+        "/Utah/all-land/for-sale/",
+        # Montana
+        "/Montana/all-land/for-sale/",
+        # Michigan
+        "/Michigan/all-land/for-sale/",
+        # New Hampshire
+        "/New-Hampshire/all-land/for-sale/",
+        # Pennsylvania
+        "/Pennsylvania/all-land/for-sale/",
+        # West Virginia
+        "/West-Virginia/all-land/for-sale/",
+        # Wyoming
+        "/Wyoming/all-land/for-sale/",
     ]
 
     def _search_url(self, path: str, page: int = 1) -> str:

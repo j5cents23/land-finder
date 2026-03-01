@@ -11,11 +11,26 @@ class CraigslistSpider(BaseSpider):
     name = "craigslist"
 
     REGIONS = [
-        "newyork",
-        "hudsonvalley",
-        "catskills",
-        "albany",
-        "potsdam",
+        # Idaho
+        "boise", "eastidaho", "lewiston", "twinfalls",
+        # Colorado
+        "cosprings", "denver", "westslope",
+        # Utah
+        "provo", "ogden", "saltlakecity", "logan",
+        # Montana
+        "billings", "bozeman", "greatfalls", "kalispell", "missoula",
+        # Michigan
+        "grandrapids", "kalamazoo", "nmi", "centralmich",
+        # New Hampshire
+        "nh",
+        # Pennsylvania
+        "poconos", "scranton", "allentown",
+        # West Virginia
+        "charlestonwv", "martinsburg", "morgantown",
+        # Wyoming
+        "wyoming",
+        # New York (keep some)
+        "hudsonvalley", "catskills",
     ]
 
     def _search_url(self, region: str, offset: int = 0) -> str:

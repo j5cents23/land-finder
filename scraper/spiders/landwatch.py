@@ -15,11 +15,24 @@ class LandWatchSpider(BaseSpider):
     BASE_URL = "https://www.landwatch.com"
 
     SEARCH_PATHS = [
-        "/new-york/sullivan-county/land-for-sale",
-        "/new-york/ulster-county/land-for-sale",
-        "/new-york/greene-county/land-for-sale",
-        "/new-york/delaware-county/land-for-sale",
-        "/new-york/orange-county/land-for-sale",
+        # Idaho
+        "/idaho/land-for-sale",
+        # Colorado
+        "/colorado/land-for-sale",
+        # Utah
+        "/utah/land-for-sale",
+        # Montana
+        "/montana/land-for-sale",
+        # Michigan
+        "/michigan/land-for-sale",
+        # New Hampshire
+        "/new-hampshire/land-for-sale",
+        # Pennsylvania
+        "/pennsylvania/land-for-sale",
+        # West Virginia
+        "/west-virginia/land-for-sale",
+        # Wyoming
+        "/wyoming/land-for-sale",
     ]
 
     def _search_url(self, path: str, page: int = 1) -> str:

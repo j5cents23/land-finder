@@ -16,10 +16,26 @@ class FacebookSpider(BaseSpider):
     BASE_URL = "https://www.facebook.com"
 
     SEARCH_URLS = [
-        "https://www.facebook.com/marketplace/nyc/search?query=land%20acres%20sullivan%20county&exact=false",
-        "https://www.facebook.com/marketplace/nyc/search?query=land%20acres%20ulster%20county&exact=false",
-        "https://www.facebook.com/marketplace/nyc/search?query=land%20acres%20catskills&exact=false",
-        "https://www.facebook.com/marketplace/nyc/search?query=vacant%20land%20upstate%20ny&exact=false",
+        # Idaho
+        "https://www.facebook.com/marketplace/boise/search?query=land%20acres%20idaho&exact=false",
+        # Colorado
+        "https://www.facebook.com/marketplace/denver/search?query=land%20acres%20colorado&exact=false",
+        "https://www.facebook.com/marketplace/108675895830498/search?query=land%20acres%20colorado%20springs&exact=false",
+        # Utah
+        "https://www.facebook.com/marketplace/saltlakecity/search?query=land%20acres%20utah&exact=false",
+        # Montana
+        "https://www.facebook.com/marketplace/billings/search?query=land%20acres%20montana&exact=false",
+        "https://www.facebook.com/marketplace/bozeman/search?query=land%20acres%20montana&exact=false",
+        # Michigan
+        "https://www.facebook.com/marketplace/grandrapids/search?query=land%20acres%20michigan&exact=false",
+        # New Hampshire
+        "https://www.facebook.com/marketplace/manchester-nh/search?query=land%20acres%20new%20hampshire&exact=false",
+        # Pennsylvania
+        "https://www.facebook.com/marketplace/scranton/search?query=land%20acres%20poconos&exact=false",
+        # West Virginia
+        "https://www.facebook.com/marketplace/charleston-wv/search?query=land%20acres%20west%20virginia&exact=false",
+        # Wyoming
+        "https://www.facebook.com/marketplace/casper/search?query=land%20acres%20wyoming&exact=false",
     ]
 
     def parse_results(self, html: str, base_url: str) -> list[dict]:
