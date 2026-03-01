@@ -8,6 +8,7 @@ from sqlalchemy import (
     DateTime,
     Enum,
     Float,
+    ForeignKey,
     Integer,
     String,
     Text,
@@ -78,3 +79,59 @@ class SearchCriteria(Base):
     require_road: Mapped[bool] = mapped_column(Boolean, default=False)
     zoning_types: Mapped[list] = mapped_column(JSON, default=list)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class ListingScore(Base):
+    __tablename__ = "listing_scores"
+
+    listing_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("listings.id"), primary_key=True
+    )
+
+    # Proximity scores (distance in miles, None = not checked yet)
+    nearest_hospital_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_hospital_name: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+    nearest_bigbox_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_bigbox_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    nearest_water_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_water_type: Mapped[str | None] = mapped_column(
+        String(100), nullable=True
+    )  # lake, river, creek
+    nearest_trail_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_trail_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    nearest_offroad_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_ski_resort_miles: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )
+    nearest_ski_resort_name: Mapped[str | None] = mapped_column(
+        String(255), nullable=True
+    )
+
+    # Area data
+    county_political_lean: Mapped[str | None] = mapped_column(
+        String(10), nullable=True
+    )  # R+15, D+5, etc
+    county_property_tax_rate: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # percentage
+    county_mil_discount: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    county_population: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    county_pop_growth_pct: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )  # 5-year %
+    county_median_age: Mapped[float | None] = mapped_column(Float, nullable=True)
+
+    # Climate
+    avg_annual_snowfall_inches: Mapped[float | None] = mapped_column(
+        Float, nullable=True
+    )
+    avg_sunny_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    # Overall match score (0-100)
+    match_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+
+    enriched_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
