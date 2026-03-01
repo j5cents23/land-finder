@@ -24,6 +24,9 @@ def make_score(**overrides) -> ListingScore:
         nearest_offroad_miles=10.0,
         nearest_ski_resort_miles=45.0,
         nearest_ski_resort_name="Bogus Basin",
+        nearest_school_miles=5.0,
+        nearest_school_name="Local Elementary",
+        school_district_rating="Above Average",
         county_political_lean="R+20",
         county_property_tax_rate=0.65,
         county_mil_discount=True,
@@ -96,6 +99,9 @@ def test_score_with_no_data():
         nearest_offroad_miles=None,
         nearest_ski_resort_miles=None,
         nearest_ski_resort_name=None,
+        nearest_school_miles=None,
+        nearest_school_name=None,
+        school_district_rating=None,
         county_political_lean=None,
         county_property_tax_rate=None,
         county_mil_discount=None,
@@ -162,3 +168,31 @@ def test_price_over_budget():
     result_expensive = compute_match_score(score, acreage=4.0, price=50000000)
     result_cheap = compute_match_score(score, acreage=4.0, price=15000000)
     assert result_cheap > result_expensive
+
+
+def test_good_schools_boost_score():
+    score_good = make_score(school_district_rating="Good")
+    score_bad = make_score(school_district_rating="Below Average")
+    score_none = make_score(school_district_rating=None)
+    result_good = compute_match_score(score_good, acreage=4.0, price=15000000)
+    result_bad = compute_match_score(score_bad, acreage=4.0, price=15000000)
+    result_none = compute_match_score(score_none, acreage=4.0, price=15000000)
+    assert result_good > result_bad
+    assert result_good > result_none
+
+
+def test_average_schools_partial_score():
+    score_avg = make_score(school_district_rating="Average")
+    score_above = make_score(school_district_rating="Above Average")
+    result_avg = compute_match_score(score_avg, acreage=4.0, price=15000000)
+    result_above = compute_match_score(score_above, acreage=4.0, price=15000000)
+    assert result_above > result_avg
+
+
+def test_county_data_has_schools():
+    data = _get_county_data("ID", "Ada")
+    assert data is not None
+    assert data["schools"] == "Above Average"
+    data_co = _get_county_data("CO", "El Paso")
+    assert data_co is not None
+    assert data_co["schools"] == "Good"

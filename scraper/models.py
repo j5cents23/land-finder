@@ -129,6 +129,11 @@ class ListingScore(Base):
     )
     avg_sunny_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
+    # School quality
+    nearest_school_miles: Mapped[float | None] = mapped_column(Float, nullable=True)
+    nearest_school_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    school_district_rating: Mapped[str | None] = mapped_column(String(50), nullable=True)  # "Above Average", "Average", etc.
+
     # Overall match score (0-100)
     match_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 

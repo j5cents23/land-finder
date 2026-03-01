@@ -155,6 +155,21 @@ async def find_nearest_offroad(
     return results[0] if results else None
 
 
+async def find_nearest_school(
+    client: httpx.AsyncClient, lat: float, lon: float
+) -> dict | None:
+    """Find the nearest school within ~20 miles."""
+    results = await _query_overpass(
+        client,
+        lat,
+        lon,
+        'node["amenity"="school"](around:{{radius}},{{lat}},{{lon}});'
+        'way["amenity"="school"](around:{{radius}},{{lat}},{{lon}});',
+        radius_meters=32000,
+    )
+    return results[0] if results else None
+
+
 # ---------------------------------------------------------------------------
 # Static county-level data
 # Sources: 2020/2024 election results, Census ACS, BLS
@@ -165,202 +180,202 @@ COUNTY_DATA: dict[tuple[str, str], dict] = {
     ("ID", "Ada"): {
         "lean": "R+8", "tax": 0.69, "mil": True,
         "pop": 510000, "growth": 18.2, "median_age": 35.3,
-        "snow": 19, "sunny": 206,
+        "snow": 19, "sunny": 206, "schools": "Above Average",
     },
     ("ID", "Gem"): {
         "lean": "R+45", "tax": 0.63, "mil": True,
         "pop": 19000, "growth": 12.1, "median_age": 40.2,
-        "snow": 25, "sunny": 204,
+        "snow": 25, "sunny": 204, "schools": "Average",
     },
     ("ID", "Boise"): {
         "lean": "R+42", "tax": 0.58, "mil": True,
         "pop": 8200, "growth": 8.5, "median_age": 42.0,
-        "snow": 35, "sunny": 200,
+        "snow": 35, "sunny": 200, "schools": "Below Average",
     },
     ("ID", "Canyon"): {
         "lean": "R+35", "tax": 0.75, "mil": True,
         "pop": 230000, "growth": 20.1, "median_age": 31.5,
-        "snow": 12, "sunny": 206,
+        "snow": 12, "sunny": 206, "schools": "Above Average",
     },
     ("ID", "Kootenai"): {
         "lean": "R+35", "tax": 0.65, "mil": True,
         "pop": 175000, "growth": 22.5, "median_age": 38.0,
-        "snow": 45, "sunny": 170,
+        "snow": 45, "sunny": 170, "schools": "Average",
     },
     ("ID", "Bonner"): {
         "lean": "R+30", "tax": 0.55, "mil": True,
         "pop": 48000, "growth": 15.3, "median_age": 44.0,
-        "snow": 55, "sunny": 165,
+        "snow": 55, "sunny": 165, "schools": "Below Average",
     },
     ("ID", "Bonneville"): {
         "lean": "R+40", "tax": 0.70, "mil": True,
         "pop": 120000, "growth": 10.2, "median_age": 31.0,
-        "snow": 35, "sunny": 195,
+        "snow": 35, "sunny": 195, "schools": "Average",
     },
     # Colorado
     ("CO", "El Paso"): {
         "lean": "R+8", "tax": 0.49, "mil": True,
         "pop": 730000, "growth": 12.5, "median_age": 34.0,
-        "snow": 38, "sunny": 243,
+        "snow": 38, "sunny": 243, "schools": "Good",
     },
     ("CO", "Teller"): {
         "lean": "R+25", "tax": 0.47, "mil": True,
         "pop": 25000, "growth": 5.8, "median_age": 48.0,
-        "snow": 65, "sunny": 246,
+        "snow": 65, "sunny": 246, "schools": "Average",
     },
     ("CO", "Park"): {
         "lean": "R+18", "tax": 0.42, "mil": True,
         "pop": 18000, "growth": 8.2, "median_age": 46.0,
-        "snow": 60, "sunny": 245,
+        "snow": 60, "sunny": 245, "schools": "Average",
     },
     ("CO", "Douglas"): {
         "lean": "R+5", "tax": 0.50, "mil": True,
         "pop": 370000, "growth": 15.0, "median_age": 38.5,
-        "snow": 42, "sunny": 245,
+        "snow": 42, "sunny": 245, "schools": "Good",
     },
     ("CO", "Fremont"): {
         "lean": "R+30", "tax": 0.55, "mil": True,
         "pop": 48000, "growth": 3.1, "median_age": 45.0,
-        "snow": 25, "sunny": 248,
+        "snow": 25, "sunny": 248, "schools": "Below Average",
     },
     # Utah
     ("UT", "Utah"): {
         "lean": "R+35", "tax": 0.55, "mil": True,
         "pop": 680000, "growth": 18.5, "median_age": 25.0,
-        "snow": 35, "sunny": 222,
+        "snow": 35, "sunny": 222, "schools": "Good",
     },
     ("UT", "Wasatch"): {
         "lean": "R+15", "tax": 0.48, "mil": True,
         "pop": 36000, "growth": 25.0, "median_age": 30.0,
-        "snow": 80, "sunny": 220,
+        "snow": 80, "sunny": 220, "schools": "Average",
     },
     ("UT", "Summit"): {
         "lean": "D+5", "tax": 0.45, "mil": True,
         "pop": 42000, "growth": 14.0, "median_age": 35.0,
-        "snow": 90, "sunny": 225,
+        "snow": 90, "sunny": 225, "schools": "Average",
     },
     ("UT", "Cache"): {
         "lean": "R+30", "tax": 0.52, "mil": True,
         "pop": 133000, "growth": 10.5, "median_age": 25.5,
-        "snow": 48, "sunny": 210,
+        "snow": 48, "sunny": 210, "schools": "Good",
     },
     # Montana
     ("MT", "Flathead"): {
         "lean": "R+30", "tax": 0.85, "mil": True,
         "pop": 108000, "growth": 16.0, "median_age": 41.0,
-        "snow": 59, "sunny": 175,
+        "snow": 59, "sunny": 175, "schools": "Average",
     },
     ("MT", "Gallatin"): {
         "lean": "R+5", "tax": 0.82, "mil": True,
         "pop": 119000, "growth": 25.0, "median_age": 33.0,
-        "snow": 72, "sunny": 185,
+        "snow": 72, "sunny": 185, "schools": "Good",
     },
     ("MT", "Missoula"): {
         "lean": "D+15", "tax": 0.83, "mil": True,
         "pop": 120000, "growth": 10.5, "median_age": 34.0,
-        "snow": 47, "sunny": 180,
+        "snow": 47, "sunny": 180, "schools": "Average",
     },
     ("MT", "Lewis and Clark"): {
         "lean": "R+5", "tax": 0.80, "mil": True,
         "pop": 72000, "growth": 8.0, "median_age": 40.0,
-        "snow": 45, "sunny": 188,
+        "snow": 45, "sunny": 188, "schools": "Average",
     },
     # Michigan
     ("MI", "Grand Traverse"): {
         "lean": "R+5", "tax": 1.15, "mil": True,
         "pop": 95000, "growth": 5.5, "median_age": 42.0,
-        "snow": 75, "sunny": 170,
+        "snow": 75, "sunny": 170, "schools": "Good",
     },
     ("MI", "Kalamazoo"): {
         "lean": "D+5", "tax": 1.40, "mil": True,
         "pop": 265000, "growth": 2.0, "median_age": 33.5,
-        "snow": 65, "sunny": 165,
+        "snow": 65, "sunny": 165, "schools": "Good",
     },
     ("MI", "Allegan"): {
         "lean": "R+20", "tax": 1.10, "mil": True,
         "pop": 120000, "growth": 6.0, "median_age": 37.5,
-        "snow": 70, "sunny": 165,
+        "snow": 70, "sunny": 165, "schools": "Average",
     },
     # New Hampshire
     ("NH", "Grafton"): {
         "lean": "D+10", "tax": 1.86, "mil": True,
         "pop": 90000, "growth": 1.0, "median_age": 42.0,
-        "snow": 60, "sunny": 158,
+        "snow": 60, "sunny": 158, "schools": "Good",
     },
     ("NH", "Coos"): {
         "lean": "R+5", "tax": 1.92, "mil": True,
         "pop": 30000, "growth": -5.0, "median_age": 48.0,
-        "snow": 80, "sunny": 155,
+        "snow": 80, "sunny": 155, "schools": "Below Average",
     },
     ("NH", "Carroll"): {
         "lean": "R+5", "tax": 1.35, "mil": True,
         "pop": 49000, "growth": 3.0, "median_age": 50.0,
-        "snow": 65, "sunny": 158,
+        "snow": 65, "sunny": 158, "schools": "Average",
     },
     # Pennsylvania
     ("PA", "Monroe"): {
         "lean": "D+5", "tax": 1.30, "mil": True,
         "pop": 170000, "growth": 5.0, "median_age": 42.0,
-        "snow": 45, "sunny": 183,
+        "snow": 45, "sunny": 183, "schools": "Good",
     },
     ("PA", "Pike"): {
         "lean": "R+10", "tax": 1.20, "mil": True,
         "pop": 58000, "growth": 4.0, "median_age": 45.0,
-        "snow": 40, "sunny": 180,
+        "snow": 40, "sunny": 180, "schools": "Average",
     },
     ("PA", "Wayne"): {
         "lean": "R+15", "tax": 1.25, "mil": True,
         "pop": 51000, "growth": 2.0, "median_age": 47.0,
-        "snow": 42, "sunny": 178,
+        "snow": 42, "sunny": 178, "schools": "Average",
     },
     # New York
     ("NY", "Sullivan"): {
         "lean": "R+2", "tax": 2.15, "mil": False,
         "pop": 78000, "growth": 2.0, "median_age": 42.0,
-        "snow": 45, "sunny": 175,
+        "snow": 45, "sunny": 175, "schools": "Below Average",
     },
     ("NY", "Ulster"): {
         "lean": "D+15", "tax": 2.10, "mil": False,
         "pop": 177000, "growth": 1.5, "median_age": 43.0,
-        "snow": 42, "sunny": 178,
+        "snow": 42, "sunny": 178, "schools": "Below Average",
     },
     ("NY", "Greene"): {
         "lean": "R+5", "tax": 2.20, "mil": False,
         "pop": 47000, "growth": -1.0, "median_age": 46.0,
-        "snow": 50, "sunny": 175,
+        "snow": 50, "sunny": 175, "schools": "Below Average",
     },
     # West Virginia
     ("WV", "Jefferson"): {
         "lean": "R+12", "tax": 0.58, "mil": True,
         "pop": 57000, "growth": 6.0, "median_age": 40.0,
-        "snow": 25, "sunny": 195,
+        "snow": 25, "sunny": 195, "schools": "Good",
     },
     ("WV", "Berkeley"): {
         "lean": "R+20", "tax": 0.55, "mil": True,
         "pop": 120000, "growth": 12.0, "median_age": 37.0,
-        "snow": 22, "sunny": 195,
+        "snow": 22, "sunny": 195, "schools": "Average",
     },
     # Tennessee
     ("TN", "Blount"): {
         "lean": "R+35", "tax": 0.60, "mil": True,
         "pop": 135000, "growth": 8.0, "median_age": 42.0,
-        "snow": 8, "sunny": 204,
+        "snow": 8, "sunny": 204, "schools": "Average",
     },
     ("TN", "Sevier"): {
         "lean": "R+45", "tax": 0.45, "mil": True,
         "pop": 105000, "growth": 12.0, "median_age": 42.0,
-        "snow": 10, "sunny": 204,
+        "snow": 10, "sunny": 204, "schools": "Average",
     },
     # Wyoming
     ("WY", "Teton"): {
         "lean": "D+15", "tax": 0.55, "mil": True,
         "pop": 24000, "growth": 8.0, "median_age": 36.0,
-        "snow": 77, "sunny": 200,
+        "snow": 77, "sunny": 200, "schools": "Below Average",
     },
     ("WY", "Laramie"): {
         "lean": "R+20", "tax": 0.58, "mil": True,
         "pop": 100000, "growth": 2.5, "median_age": 34.0,
-        "snow": 45, "sunny": 230,
+        "snow": 45, "sunny": 230, "schools": "Average",
     },
 }
 
@@ -419,7 +434,7 @@ def compute_match_score(score: ListingScore, acreage: float, price: int) -> int:
       Price fit: 10           Low taxes: 5               Military friendly: 5
       Snow: 5                 Sunshine: 5                Pop growth: 5
       Ski resort: 5           Young population: 3        County size: 2
-      Offroad: 5
+      Offroad: 5              Schools: 7
     """
     points = 0
     max_points = 0
@@ -544,6 +559,14 @@ def compute_match_score(score: ListingScore, acreage: float, price: int) -> int:
         elif score.nearest_ski_resort_miles < 150:
             points += 3
 
+    # Good schools (7 pts)
+    max_points += 7
+    if score.school_district_rating:
+        if score.school_district_rating in ("Good", "Above Average"):
+            points += 7
+        elif score.school_district_rating == "Average":
+            points += 4
+
     return round((points / max_points) * 100) if max_points > 0 else 0
 
 
@@ -580,6 +603,9 @@ async def enrich_listing(
         await asyncio.sleep(1)
 
         offroad = await find_nearest_offroad(client, lat, lon)
+        await asyncio.sleep(1)
+
+        school = await find_nearest_school(client, lat, lon)
 
     if hospital:
         score.nearest_hospital_miles = round(hospital["distance_miles"], 1)
@@ -600,6 +626,10 @@ async def enrich_listing(
     if offroad:
         score.nearest_offroad_miles = round(offroad["distance_miles"], 1)
 
+    if school:
+        score.nearest_school_miles = round(school["distance_miles"], 1)
+        score.nearest_school_name = school["name"]
+
     # Ski resort (from static data)
     ski = _find_nearest_ski(lat, lon)
     if ski:
@@ -617,6 +647,7 @@ async def enrich_listing(
         score.county_median_age = county_info["median_age"]
         score.avg_annual_snowfall_inches = county_info["snow"]
         score.avg_sunny_days = county_info["sunny"]
+        score.school_district_rating = county_info.get("schools")
 
     score.match_score = compute_match_score(score, acreage, price)
     score.enriched_at = datetime.now(timezone.utc)
