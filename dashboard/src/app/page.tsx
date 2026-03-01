@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from "react"
+import { useEffect, useState, useCallback, useMemo } from "react"
 import dynamic from "next/dynamic"
 import ListingCard from "@/components/listing-card"
 import type { Listing, ApiResponse } from "@/lib/types"
@@ -18,12 +18,13 @@ export default function HomePage() {
   const [listings, setListings] = useState<Listing[]>([])
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
+  const [sortByScore, setSortByScore] = useState(true)
 
   useEffect(() => {
     async function load() {
       try {
         const [listingsRes, favoritesRes] = await Promise.all([
-          fetch("/api/listings?limit=100"),
+          fetch("/api/listings?limit=100&sort=score"),
           fetch("/api/favorites"),
         ])
         const listingsData: ApiResponse<Listing[]> = await listingsRes.json()
@@ -39,6 +40,17 @@ export default function HomePage() {
     }
     load()
   }, [])
+
+  const sortedListings = useMemo(() => {
+    if (!sortByScore) {
+      const copy = [...listings]
+      copy.sort((a, b) => new Date(b.first_seen_at).getTime() - new Date(a.first_seen_at).getTime())
+      return copy
+    }
+    const copy = [...listings]
+    copy.sort((a, b) => (b.match_score ?? -1) - (a.match_score ?? -1))
+    return copy
+  }, [listings, sortByScore])
 
   const toggleFavorite = useCallback(async (id: string) => {
     const res = await fetch(`/api/favorites/${id}`, { method: "PATCH" })
@@ -78,21 +90,33 @@ export default function HomePage() {
         <p className="text-sm text-zinc-500 dark:text-zinc-400">
           {listings.length} listings
         </p>
-        <div className="flex gap-2 text-xs text-zinc-500 dark:text-zinc-400">
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" /> New
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-blue-500" /> Older
-          </span>
-          <span className="flex items-center gap-1">
-            <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> Hot deal
-          </span>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => setSortByScore(prev => !prev)}
+            className={`rounded-md px-3 py-1.5 text-xs font-medium transition-colors ${
+              sortByScore
+                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                : "bg-zinc-100 text-zinc-600 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-700"
+            }`}
+          >
+            {sortByScore ? "Sorted by Score" : "Sort by Score"}
+          </button>
+          <div className="flex gap-2 text-xs text-zinc-500 dark:text-zinc-400">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-green-500" /> Score 80+
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-yellow-500" /> Score 60+
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2.5 w-2.5 rounded-full bg-red-500" /> Below 60
+            </span>
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {listings.map(listing => (
+        {sortedListings.map(listing => (
           <ListingCard
             key={listing.id}
             listing={listing}

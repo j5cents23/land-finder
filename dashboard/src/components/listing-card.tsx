@@ -18,11 +18,31 @@ const SOURCE_COLORS: Record<string, string> = {
   facebook: "bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200",
 }
 
+function ScoreBadge({ score }: { readonly score: number | null }) {
+  if (score == null || score < 40) return null
+
+  const colorClass = score >= 80
+    ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+    : score >= 60
+      ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+      : "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+
+  const label = score >= 80 ? `\uD83C\uDFAF ${score}` : `${score}`
+
+  return (
+    <span className={`absolute right-2 top-2 inline-block rounded-full px-2 py-0.5 text-xs font-bold ${colorClass}`}>
+      {label}
+    </span>
+  )
+}
+
 export default function ListingCard({ listing, isFavorited, onToggleFavorite }: ListingCardProps) {
   const sourceClass = SOURCE_COLORS[listing.source] ?? "bg-zinc-100 text-zinc-800 dark:bg-zinc-800 dark:text-zinc-200"
 
   return (
     <div className="group relative rounded-lg border border-zinc-200 bg-white p-4 shadow-sm transition-shadow hover:shadow-md dark:border-zinc-800 dark:bg-zinc-900">
+      <ScoreBadge score={listing.match_score} />
+
       <div className="mb-2 flex items-start justify-between gap-2">
         <Link
           href={`/listings/${listing.id}`}

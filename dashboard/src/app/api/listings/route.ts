@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
   const maxPrice = params.get("max_price")
   const source = params.get("source")
   const activeOnly = params.get("active") !== "false"
+  const sortBy = params.get("sort")
 
   const db = getDb()
 
@@ -22,37 +23,48 @@ export async function GET(request: NextRequest) {
     const values: unknown[] = []
 
     if (activeOnly) {
-      conditions.push("is_active = 1")
+      conditions.push("l.is_active = 1")
     }
     if (state) {
-      conditions.push("state = ?")
+      conditions.push("l.state = ?")
       values.push(state)
     }
     if (county) {
-      conditions.push("county = ?")
+      conditions.push("l.county = ?")
       values.push(county)
     }
     if (minAcreage) {
-      conditions.push("acreage >= ?")
+      conditions.push("l.acreage >= ?")
       values.push(parseFloat(minAcreage))
     }
     if (maxPrice) {
-      conditions.push("price <= ?")
+      conditions.push("l.price <= ?")
       values.push(parseInt(maxPrice, 10))
     }
     if (source) {
-      conditions.push("source = ?")
+      conditions.push("l.source = ?")
       values.push(source)
     }
 
     const where = conditions.length ? `WHERE ${conditions.join(" AND ")}` : ""
 
+    const orderClause = sortBy === "score"
+      ? "ORDER BY ls.match_score DESC"
+      : "ORDER BY l.first_seen_at DESC"
+
     const countRow = db.prepare(
-      `SELECT COUNT(*) as total FROM listings ${where}`
+      `SELECT COUNT(*) as total FROM listings l ${where}`
     ).get(...values) as { total: number }
 
     const rows = db.prepare(
-      `SELECT * FROM listings ${where} ORDER BY first_seen_at DESC LIMIT ? OFFSET ?`
+      `SELECT l.*, ls.match_score, ls.nearest_hospital_miles, ls.nearest_bigbox_miles,
+              ls.nearest_water_miles, ls.nearest_trail_miles, ls.nearest_ski_resort_miles,
+              ls.county_political_lean, ls.county_property_tax_rate, ls.school_district_rating,
+              ls.avg_annual_snowfall_inches, ls.avg_sunny_days, ls.county_pop_growth_pct,
+              ls.county_median_age, ls.county_population, ls.county_mil_discount
+       FROM listings l
+       LEFT JOIN listing_scores ls ON l.id = ls.listing_id
+       ${where} ${orderClause} LIMIT ? OFFSET ?`
     ).all(...values, limit, offset)
 
     const response: ApiResponse<Listing[]> = {

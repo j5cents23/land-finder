@@ -9,10 +9,11 @@ interface ListingsTableProps {
   readonly listings: Listing[]
 }
 
-type SortKey = "title" | "price" | "acreage" | "price_per_acre" | "county" | "state" | "source" | "first_seen_at"
+type SortKey = "title" | "price" | "acreage" | "price_per_acre" | "county" | "state" | "source" | "first_seen_at" | "match_score"
 type SortDir = "asc" | "desc"
 
 const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: "match_score", label: "Score" },
   { key: "title", label: "Title" },
   { key: "price", label: "Price" },
   { key: "acreage", label: "Acreage" },
@@ -26,8 +27,19 @@ const COLUMNS: { key: SortKey; label: string }[] = [
 function compareFn(a: Listing, b: Listing, key: SortKey): number {
   const valA = a[key]
   const valB = b[key]
+  if (valA == null && valB == null) return 0
+  if (valA == null) return -1
+  if (valB == null) return 1
   if (typeof valA === "number" && typeof valB === "number") return valA - valB
   return String(valA ?? "").localeCompare(String(valB ?? ""))
+}
+
+function scoreClass(score: number | null): string {
+  if (score == null) return "text-zinc-400 dark:text-zinc-500"
+  if (score >= 80) return "font-bold text-green-600 dark:text-green-400"
+  if (score >= 60) return "font-bold text-yellow-600 dark:text-yellow-400"
+  if (score >= 40) return "text-zinc-600 dark:text-zinc-400"
+  return "text-zinc-400 dark:text-zinc-500"
 }
 
 export default function ListingsTable({ listings }: ListingsTableProps) {
@@ -48,7 +60,7 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
       setSortDir(prev => (prev === "asc" ? "desc" : "asc"))
     } else {
       setSortKey(key)
-      setSortDir("asc")
+      setSortDir(key === "match_score" ? "desc" : "asc")
     }
   }
 
@@ -77,6 +89,9 @@ export default function ListingsTable({ listings }: ListingsTableProps) {
               key={listing.id}
               className="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900/50"
             >
+              <td className={`whitespace-nowrap px-4 py-3 ${scoreClass(listing.match_score)}`}>
+                {listing.match_score != null ? listing.match_score : "\u2014"}
+              </td>
               <td className="max-w-xs truncate px-4 py-3">
                 <Link
                   href={`/listings/${listing.id}`}

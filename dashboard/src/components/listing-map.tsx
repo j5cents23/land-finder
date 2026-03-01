@@ -29,10 +29,14 @@ interface ListingMapProps {
 }
 
 function getMarkerColor(listing: Listing): string {
+  const score = listing.match_score
+  if (score != null) {
+    if (score >= 80) return "#22c55e"
+    if (score >= 60) return "#eab308"
+    return "#ef4444"
+  }
   const twentyFourHoursAgo = Date.now() - 24 * 60 * 60 * 1000
   const firstSeen = new Date(listing.first_seen_at).getTime()
-
-  if (listing.price_per_acre < 200000) return "#ef4444"
   if (firstSeen > twentyFourHoursAgo) return "#22c55e"
   return "#3b82f6"
 }
@@ -102,6 +106,9 @@ export default function ListingMap({ listings }: ListingMapProps) {
             <div className="text-sm">
               <p className="font-semibold">{listing.title}</p>
               <p>{formatPrice(listing.price)} &middot; {listing.acreage.toFixed(1)} ac</p>
+              {listing.match_score != null && (
+                <p className="font-medium">Score: {listing.match_score}/100</p>
+              )}
               <a
                 href={`/listings/${listing.id}`}
                 className="text-blue-600 underline"

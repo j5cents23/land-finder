@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback } from "react"
 import { useParams, useRouter } from "next/navigation"
 import dynamic from "next/dynamic"
 import { formatPrice, formatPPA, timeAgo } from "@/lib/format"
-import type { Listing, ApiResponse } from "@/lib/types"
+import type { Listing, ListingScores, ApiResponse } from "@/lib/types"
 
 const ListingMap = dynamic(() => import("@/components/listing-map"), {
   ssr: false,
@@ -38,12 +38,184 @@ function FeatureBadge({ active, label }: { readonly active: boolean; readonly la
   )
 }
 
+function scoreColor(score: number): string {
+  if (score >= 80) return "text-green-600 dark:text-green-400"
+  if (score >= 60) return "text-yellow-600 dark:text-yellow-400"
+  if (score >= 40) return "text-zinc-600 dark:text-zinc-400"
+  return "text-red-600 dark:text-red-400"
+}
+
+function Indicator({ good }: { readonly good: boolean | null }) {
+  if (good === null) return <span className="text-zinc-400">{"\u2014"}</span>
+  return good
+    ? <span className="text-green-600">{"\u2705"}</span>
+    : <span className="text-red-500">{"\u274C"}</span>
+}
+
+function ScoreRow({ label, value, indicator }: {
+  readonly label: string
+  readonly value: string
+  readonly indicator: boolean | null
+}) {
+  return (
+    <div className="flex items-center justify-between py-1">
+      <span className="text-sm text-zinc-500 dark:text-zinc-400">{label}</span>
+      <span className="flex items-center gap-2 text-sm font-medium text-zinc-900 dark:text-zinc-100">
+        {value} <Indicator good={indicator} />
+      </span>
+    </div>
+  )
+}
+
+function LocationScorePanel({ scores }: { readonly scores: ListingScores }) {
+  const matchScore = scores.match_score
+
+  return (
+    <div className="mt-6 rounded-lg border border-zinc-200 bg-white p-5 dark:border-zinc-800 dark:bg-zinc-900">
+      <h2 className="mb-4 text-lg font-bold text-zinc-900 dark:text-zinc-100">
+        Location Score
+      </h2>
+
+      {matchScore != null && (
+        <div className="mb-4">
+          <span className={`text-3xl font-bold ${scoreColor(matchScore)}`}>
+            {matchScore}
+          </span>
+          <span className="text-lg text-zinc-400">/100</span>
+          <span className="ml-2">
+            {matchScore >= 80 ? "\uD83D\uDFE2" : matchScore >= 60 ? "\uD83D\uDFE1" : "\uD83D\uDD34"}
+          </span>
+        </div>
+      )}
+
+      <div className="mb-4">
+        <h3 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {"\uD83D\uDCCD"} Proximity
+        </h3>
+        <div className="space-y-0.5">
+          <ScoreRow
+            label="Hospital"
+            value={scores.nearest_hospital_miles != null
+              ? `${scores.nearest_hospital_miles} mi${scores.nearest_hospital_name ? ` (${scores.nearest_hospital_name})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_hospital_miles != null ? scores.nearest_hospital_miles < 25 : null}
+          />
+          <ScoreRow
+            label="Walmart/Costco"
+            value={scores.nearest_bigbox_miles != null
+              ? `${scores.nearest_bigbox_miles} mi${scores.nearest_bigbox_name ? ` (${scores.nearest_bigbox_name})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_bigbox_miles != null ? scores.nearest_bigbox_miles < 35 : null}
+          />
+          <ScoreRow
+            label="Water"
+            value={scores.nearest_water_miles != null
+              ? `${scores.nearest_water_miles} mi${scores.nearest_water_type ? ` (${scores.nearest_water_type})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_water_miles != null ? scores.nearest_water_miles < 5 : null}
+          />
+          <ScoreRow
+            label="Hiking Trails"
+            value={scores.nearest_trail_miles != null
+              ? `${scores.nearest_trail_miles} mi${scores.nearest_trail_name ? ` (${scores.nearest_trail_name})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_trail_miles != null ? scores.nearest_trail_miles < 15 : null}
+          />
+          <ScoreRow
+            label="Offroad"
+            value={scores.nearest_offroad_miles != null ? `${scores.nearest_offroad_miles} mi` : "Unknown"}
+            indicator={scores.nearest_offroad_miles != null ? scores.nearest_offroad_miles < 30 : null}
+          />
+          <ScoreRow
+            label="Ski Resort"
+            value={scores.nearest_ski_resort_miles != null
+              ? `${scores.nearest_ski_resort_miles} mi${scores.nearest_ski_resort_name ? ` (${scores.nearest_ski_resort_name})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_ski_resort_miles != null ? scores.nearest_ski_resort_miles < 150 : null}
+          />
+          <ScoreRow
+            label="School"
+            value={scores.nearest_school_miles != null
+              ? `${scores.nearest_school_miles} mi${scores.nearest_school_name ? ` (${scores.nearest_school_name})` : ""}`
+              : "Unknown"}
+            indicator={scores.nearest_school_miles != null ? scores.nearest_school_miles < 20 : null}
+          />
+        </div>
+      </div>
+
+      <div className="mb-4">
+        <h3 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {"\uD83C\uDFDB\uFE0F"} Area Info
+        </h3>
+        <div className="space-y-0.5">
+          <ScoreRow
+            label="Political"
+            value={scores.county_political_lean ?? "Unknown"}
+            indicator={scores.county_political_lean ? scores.county_political_lean.startsWith("R") : null}
+          />
+          <ScoreRow
+            label="Property Tax"
+            value={scores.county_property_tax_rate != null ? `${scores.county_property_tax_rate}%` : "Unknown"}
+            indicator={scores.county_property_tax_rate != null ? scores.county_property_tax_rate < 1.2 : null}
+          />
+          <ScoreRow
+            label="Military Discount"
+            value={scores.county_mil_discount != null ? (scores.county_mil_discount ? "Yes" : "No") : "Unknown"}
+            indicator={scores.county_mil_discount != null ? Boolean(scores.county_mil_discount) : null}
+          />
+          <ScoreRow
+            label="Schools"
+            value={scores.school_district_rating ?? "Unknown"}
+            indicator={scores.school_district_rating
+              ? ["Good", "Above Average"].includes(scores.school_district_rating)
+              : null}
+          />
+          <ScoreRow
+            label="Population"
+            value={scores.county_population != null ? scores.county_population.toLocaleString() : "Unknown"}
+            indicator={scores.county_population != null ? scores.county_population > 40000 : null}
+          />
+          <ScoreRow
+            label="Growth (5yr)"
+            value={scores.county_pop_growth_pct != null ? `${scores.county_pop_growth_pct > 0 ? "+" : ""}${scores.county_pop_growth_pct}%` : "Unknown"}
+            indicator={scores.county_pop_growth_pct != null ? scores.county_pop_growth_pct > 5 : null}
+          />
+          <ScoreRow
+            label="Median Age"
+            value={scores.county_median_age != null ? `${scores.county_median_age}` : "Unknown"}
+            indicator={scores.county_median_age != null ? scores.county_median_age < 40 : null}
+          />
+        </div>
+      </div>
+
+      <div>
+        <h3 className="mb-2 text-sm font-semibold text-zinc-700 dark:text-zinc-300">
+          {"\uD83C\uDF24\uFE0F"} Climate
+        </h3>
+        <div className="space-y-0.5">
+          <ScoreRow
+            label="Snowfall"
+            value={scores.avg_annual_snowfall_inches != null ? `${scores.avg_annual_snowfall_inches} in/yr` : "Unknown"}
+            indicator={scores.avg_annual_snowfall_inches != null ? scores.avg_annual_snowfall_inches >= 20 : null}
+          />
+          <ScoreRow
+            label="Sunny Days"
+            value={scores.avg_sunny_days != null ? `${scores.avg_sunny_days}/yr` : "Unknown"}
+            indicator={scores.avg_sunny_days != null ? scores.avg_sunny_days >= 170 : null}
+          />
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function ListingDetailPage() {
   const params = useParams()
   const router = useRouter()
   const id = params.id as string
 
   const [listing, setListing] = useState<Listing | null>(null)
+  const [scores, setScores] = useState<ListingScores | null>(null)
   const [isFavorited, setIsFavorited] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -51,12 +223,14 @@ export default function ListingDetailPage() {
   useEffect(() => {
     async function load() {
       try {
-        const [listingRes, favoritesRes] = await Promise.all([
+        const [listingRes, favoritesRes, scoresRes] = await Promise.all([
           fetch(`/api/listings/${id}`),
           fetch("/api/favorites"),
+          fetch(`/api/listings/${id}/scores`),
         ])
         const listingData: ApiResponse<Listing> = await listingRes.json()
         const favoritesData: ApiResponse<string[]> = await favoritesRes.json()
+        const scoresData: ApiResponse<ListingScores | null> = await scoresRes.json()
 
         if (!listingData.success || !listingData.data) {
           setError(listingData.error ?? "Listing not found")
@@ -64,6 +238,7 @@ export default function ListingDetailPage() {
         }
 
         setListing(listingData.data)
+        setScores(scoresData.data ?? null)
         const favIds = favoritesData.data ?? []
         setIsFavorited(favIds.includes(id))
       } catch {
@@ -223,8 +398,12 @@ export default function ListingDetailPage() {
           )}
         </div>
 
-        <div className="h-[400px] overflow-hidden rounded-lg border border-zinc-200 lg:h-[500px] dark:border-zinc-800">
-          <ListingMap listings={[listing]} />
+        <div>
+          <div className="h-[400px] overflow-hidden rounded-lg border border-zinc-200 lg:h-[500px] dark:border-zinc-800">
+            <ListingMap listings={[listing]} />
+          </div>
+
+          {scores && <LocationScorePanel scores={scores} />}
         </div>
       </div>
     </div>
