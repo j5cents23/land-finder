@@ -30,7 +30,9 @@ async def create_stealth_browser() -> tuple[Playwright, Browser]:
 
 async def create_stealth_page(browser: Browser) -> Page:
     """Create a new page with stealth patches applied."""
-    from playwright_stealth import stealth_async
+    from playwright_stealth import Stealth
+
+    stealth = Stealth()
 
     context = await browser.new_context(
         viewport={
@@ -57,7 +59,7 @@ async def create_stealth_page(browser: Browser) -> Page:
         permissions=[],
     )
     page = await context.new_page()
-    await stealth_async(page)
+    await stealth.apply_stealth_async(page)
     return page
 
 
