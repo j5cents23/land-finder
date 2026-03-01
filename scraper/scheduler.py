@@ -12,15 +12,19 @@ from scraper.models import Base, Listing
 from scraper.pipeline.alerter import send_digest
 from scraper.pipeline.orchestrator import run_pipeline
 from scraper.spiders.craigslist import CraigslistSpider
+from scraper.spiders.facebook import FacebookSpider
+from scraper.spiders.land_com import LandComSpider
+from scraper.spiders.landwatch import LandWatchSpider
+from scraper.spiders.zillow import ZillowSpider
 
 logger = logging.getLogger("land-finder")
 
 SPIDERS = {
     "craigslist": CraigslistSpider,
-    # "landwatch": LandWatchSpider,
-    # "land_com": LandComSpider,
-    # "zillow": ZillowSpider,
-    # "facebook": FacebookSpider,
+    "landwatch": LandWatchSpider,
+    "land_com": LandComSpider,
+    "zillow": ZillowSpider,
+    "facebook": FacebookSpider,
 }
 
 
