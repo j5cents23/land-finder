@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 
-const SOURCES = ["craigslist", "landwatch", "land_com", "zillow", "facebook"] as const
+const SOURCES = ["REALTOR", "CRAIGSLIST", "LANDWATCH", "LAND_COM", "ZILLOW", "FACEBOOK"] as const
 const FEATURES = [
   { key: "water", label: "Water" },
   { key: "utilities", label: "Utilities" },
@@ -75,7 +75,7 @@ export default function FilterSidebar({ onApply }: FilterSidebarProps) {
       <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">Filters</h2>
 
       <div>
-        <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Price Range (cents)</label>
+        <label className="mb-1 block text-xs font-medium text-zinc-600 dark:text-zinc-400">Price Range ($)</label>
         <div className="flex gap-2">
           <input
             type="number"
@@ -147,7 +147,7 @@ export default function FilterSidebar({ onApply }: FilterSidebarProps) {
                 onChange={() => handleSourceToggle(source)}
                 className="rounded border-zinc-300 dark:border-zinc-600"
               />
-              {source}
+              {source.charAt(0) + source.slice(1).toLowerCase().replace("_", ".")}
             </label>
           ))}
         </div>

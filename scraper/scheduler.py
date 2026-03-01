@@ -11,20 +11,12 @@ from scraper.db import get_engine, get_session
 from scraper.models import Base, Listing
 from scraper.pipeline.alerter import send_digest
 from scraper.pipeline.orchestrator import run_pipeline
-from scraper.spiders.craigslist import CraigslistSpider
-from scraper.spiders.facebook import FacebookSpider
-from scraper.spiders.land_com import LandComSpider
-from scraper.spiders.landwatch import LandWatchSpider
-from scraper.spiders.zillow import ZillowSpider
+from scraper.spiders.realtor import RealtorSpider
 
 logger = logging.getLogger("land-finder")
 
 SPIDERS = {
-    "craigslist": CraigslistSpider,
-    "landwatch": LandWatchSpider,
-    "land_com": LandComSpider,
-    "zillow": ZillowSpider,
-    "facebook": FacebookSpider,
+    "realtor": RealtorSpider,
 }
 
 
@@ -33,7 +25,7 @@ async def _run_spider(name: str, spider, config: AppConfig) -> list[dict]:
         logger.info(f"Running spider: {name}")
         results = await spider.scrape(criteria={})
         for r in results:
-            r["source"] = name
+            r.setdefault("source", name)
         logger.info(f"Spider {name} returned {len(results)} results")
         return results
     except Exception as e:

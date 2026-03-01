@@ -27,6 +27,7 @@ class SourceEnum(str, enum.Enum):
     LAND_COM = "land_com"
     CRAIGSLIST = "craigslist"
     FACEBOOK = "facebook"
+    REALTOR = "realtor"
 
 
 class Listing(Base):
