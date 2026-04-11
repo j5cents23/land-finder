@@ -12,8 +12,11 @@ from scraper.models import Base, Listing
 from scraper.pipeline.alerter import send_digest
 from scraper.pipeline.orchestrator import run_pipeline
 from scraper.spiders.realtor import RealtorSpider
+from scraper.watchtower_client import capture_exception, monitor
 
 logger = logging.getLogger("land-finder")
+
+PROJECT = "land_finder"
 
 SPIDERS = {
     "realtor": RealtorSpider,
@@ -29,10 +32,12 @@ async def _run_spider(name: str, spider, config: AppConfig) -> list[dict]:
         logger.info(f"Spider {name} returned {len(results)} results")
         return results
     except Exception as e:
+        capture_exception(e, project=PROJECT, context={"step": "run_spider", "spider": name})
         logger.error(f"Spider {name} failed: {e}")
         return []
 
 
+@monitor(job_name="scrape_and_digest", project=PROJECT, expect_every_sec=14400)
 async def run_scrape(config: AppConfig) -> dict:
     engine = get_engine(config.db_path)
     Base.metadata.create_all(engine)
@@ -77,6 +82,7 @@ async def run_scrape(config: AppConfig) -> dict:
                 session.commit()
                 logger.info(f"Sent digest with {len(new_listings)} listings")
             except Exception as e:
+                capture_exception(e, project=PROJECT, context={"step": "send_digest", "listing_count": len(new_listings)})
                 logger.error(f"Failed to send digest: {e}")
 
     # Write run log
